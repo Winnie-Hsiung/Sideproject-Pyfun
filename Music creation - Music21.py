@@ -1,5 +1,7 @@
 # This is a code for a music creation. It is made for fun. 
 
+#GitHub: https://github.com/nwhitehead/pyfluidsynth
+
 import os
 from music21 import stream, note, chord, midi
 import fluidsynth
