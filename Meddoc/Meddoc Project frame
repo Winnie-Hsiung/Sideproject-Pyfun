@@ -1,0 +1,16 @@
+
+pubmed_fetcher/
+├── src/
+│   └── pubmed_fetcher/
+│       ├── __init__.py
+│       ├── fetcher.py      # 主邏輯：抓資料、擷取文字
+│       └── writer.py       # 寫入 Word 的模組
+├── tests/
+│   └── test_fetcher.py
+├── data/
+│   └── pubmed_ids.csv      # 你放 ID 的地方
+├── README.md
+├── pyproject.toml
+└── .gitignore
+
+
