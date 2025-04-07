@@ -1,4 +1,5 @@
 # src/pubmed_fetcher/fetcher.py
+# src/pubmed_fetcher/fetcher.py
 
 import os
 import requests
@@ -58,8 +59,48 @@ def fetch_full_text(doi):
 
 
 def fetch_pdf_text(doi):
-    # Basic example, needs real PDF URL handling or Unpaywall API integration
-    return ""  # PDF fetching placeholder
+    if not doi:
+        return ""
+
+    # Try Unpaywall API
+    try:
+        api_url = f"https://api.unpaywall.org/v2/{doi}?email=shsiung@berkeley.edu"
+        response = requests.get(api_url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        pdf_url = data.get("best_oa_location", {}).get("url_for_pdf")
+        if pdf_url:
+            pdf_response = requests.get(pdf_url, timeout=15)
+            with open("temp.pdf", "wb") as f:
+                f.write(pdf_response.content)
+            with fitz.open("temp.pdf") as doc:
+                text = "\n".join(page.get_text() for page in doc)
+            os.remove("temp.pdf")
+            return text.strip()[:5000]
+    except Exception as e:
+        print(f"Unpaywall failed for DOI {doi}: {e}")
+
+    # Optionally fallback to Sci-Hub (not recommended/legal concerns)
+    try:
+        scihub_url = f"https://sci-hub.se/{doi}"
+        response = requests.get(scihub_url, timeout=10)
+        soup = BeautifulSoup(response.text, "html.parser")
+        iframe = soup.find("iframe")
+        if iframe and "src" in iframe.attrs:
+            pdf_link = iframe["src"]
+            if not pdf_link.startswith("http"):
+                pdf_link = f"https:{pdf_link}"
+            pdf_response = requests.get(pdf_link, timeout=15)
+            with open("temp.pdf", "wb") as f:
+                f.write(pdf_response.content)
+            with fitz.open("temp.pdf") as doc:
+                text = "\n".join(page.get_text() for page in doc)
+            os.remove("temp.pdf")
+            return text.strip()[:5000]
+    except Exception as e:
+        print(f"Sci-Hub failed for DOI {doi}: {e}")
+
+    return ""
 
 
 def process_pubmed_ids(csv_file, output_dir):
@@ -70,3 +111,4 @@ def process_pubmed_ids(csv_file, output_dir):
             html_text = fetch_full_text(meta["doi"])
             pdf_text = fetch_pdf_text(meta["doi"])
             save_to_docx(pmid, meta, html_text, pdf_text, output_dir)
+
